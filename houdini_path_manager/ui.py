@@ -82,6 +82,8 @@ class ExternalPathManagerUI(QWidget):
         seen_parms = set()
         row = 0
         for parm, ref_path in refs:
+            if parm is None:
+                continue
             if parm in seen_parms:
                 continue
             seen_parms.add(parm)
