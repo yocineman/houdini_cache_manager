@@ -106,11 +106,20 @@ class ExternalPathManagerUI(QWidget):
             self.table.setItem(row, 1, QTableWidgetItem(node.path()))
             self.table.setItem(row, 2, QTableWidgetItem(parm.name()))
             
-            unexpanded_val = parm.unexpandedString()
+            unexpanded_val = self.get_parm_string(parm)
             self.table.setItem(row, 3, QTableWidgetItem(unexpanded_val))
             
             self.parm_list.append((parm, checkbox))
             row += 1
+
+    def get_parm_string(self, parm):
+        try:
+            return parm.unexpandedString()
+        except hou.OperationFailed:
+            try:
+                return parm.rawValue()
+            except:
+                return parm.evalAsString()
 
     def select_all(self):
         for _, checkbox in self.parm_list:
@@ -133,7 +142,7 @@ class ExternalPathManagerUI(QWidget):
             for row in range(self.table.rowCount()):
                 parm, checkbox = self.parm_list[row]
                 if checkbox.isChecked():
-                    current_val = parm.unexpandedString()
+                    current_val = self.get_parm_string(parm)
                     if search_str in current_val:
                         new_val = current_val.replace(search_str, replace_str)
                         try:
