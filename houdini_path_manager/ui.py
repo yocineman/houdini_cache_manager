@@ -28,12 +28,18 @@ class ExternalPathManagerUI(QWidget):
         self.refresh_btn = QPushButton("Refresh List")
         self.refresh_btn.clicked.connect(self.refresh_list)
         
+        self.filter_le = QLineEdit()
+        self.filter_le.setPlaceholderText("Filter by file path...")
+        self.filter_le.textChanged.connect(self.filter_table)
+
         self.select_all_btn = QPushButton("Select All")
         self.select_all_btn.clicked.connect(self.select_all)
         self.deselect_all_btn = QPushButton("Deselect All")
         self.deselect_all_btn.clicked.connect(self.deselect_all)
         
         top_layout.addWidget(self.refresh_btn)
+        top_layout.addWidget(QLabel("Filter:"))
+        top_layout.addWidget(self.filter_le)
         top_layout.addStretch()
         top_layout.addWidget(self.select_all_btn)
         top_layout.addWidget(self.deselect_all_btn)
@@ -120,6 +126,16 @@ class ExternalPathManagerUI(QWidget):
                 return parm.rawValue()
             except:
                 return parm.evalAsString()
+
+    def filter_table(self, text):
+        search_text = text.lower()
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 3)
+            if item:
+                if search_text in item.text().lower():
+                    self.table.setRowHidden(row, False)
+                else:
+                    self.table.setRowHidden(row, True)
 
     def select_all(self):
         for _, checkbox in self.parm_list:
