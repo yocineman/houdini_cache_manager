@@ -29,7 +29,7 @@ class ExternalPathManagerUI(QWidget):
         self.refresh_btn.clicked.connect(self.refresh_list)
         
         self.filter_le = QLineEdit()
-        self.filter_le.setPlaceholderText("Filter by file path...")
+        self.filter_le.setPlaceholderText("Filter by node path...")
         self.filter_le.textChanged.connect(self.filter_table)
 
         self.select_all_btn = QPushButton("Select All")
@@ -130,7 +130,7 @@ class ExternalPathManagerUI(QWidget):
     def filter_table(self, text):
         search_text = text.lower()
         for row in range(self.table.rowCount()):
-            item = self.table.item(row, 3)
+            item = self.table.item(row, 1) # Column 1 is Node Path
             if item:
                 if search_text in item.text().lower():
                     self.table.setRowHidden(row, False)
