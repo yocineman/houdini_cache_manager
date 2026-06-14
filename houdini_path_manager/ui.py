@@ -184,6 +184,8 @@ class ExternalPathManagerUI(QWidget):
         count = 0
         with hou.undogroup("Batch Replace External Paths"):
             for row in range(self.table.rowCount()):
+                if self.table.isRowHidden(row):
+                    continue
                 parm, checkbox = self.parm_list[row]
                 if checkbox.isChecked():
                     current_val = self.get_parm_string(parm)
