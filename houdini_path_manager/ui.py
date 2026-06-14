@@ -173,13 +173,20 @@ class ExternalPathManagerUI(QWidget):
         seq_pattern = r'(\$[S]*F\d*|\$T|\$N|<UDIM>|%\(UDIM\)d)'
         
         if re.search(seq_pattern, unexpanded_val):
-            # Replace sequences with wildcard
-            glob_unexpanded = re.sub(seq_pattern, '*', unexpanded_val)
+            # evaluated path expands Houdini variables and evaluates the current frame.
+            # But we want to check if ANY frame/UDIM exists, so we glob the basename.
+            eval_dir = os.path.dirname(evaluated)
+            unexp_base = os.path.basename(unexpanded_val)
+            
+            # Escape the directory in case it contains '[' or ']' characters which break glob
             try:
-                glob_path = hou.expandString(glob_unexpanded)
-            except:
-                glob_path = glob_unexpanded
+                eval_dir_escaped = glob.escape(eval_dir)
+            except AttributeError:
+                eval_dir_escaped = eval_dir # fallback for very old python
                 
+            glob_base = re.sub(seq_pattern, '*', unexp_base)
+            glob_path = os.path.join(eval_dir_escaped, glob_base)
+            
             if glob.glob(glob_path):
                 return QColor(255, 255, 120) # Yellow (sequence exists)
             else:
