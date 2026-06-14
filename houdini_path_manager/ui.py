@@ -145,6 +145,10 @@ class ExternalPathManagerUI(QWidget):
             
             self.parm_list.append((parm, checkbox))
             row += 1
+            
+        current_filter = self.filter_le.text()
+        if current_filter:
+            self.filter_table(current_filter)
 
     def get_parm_string(self, parm):
         try:
