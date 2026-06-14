@@ -129,7 +129,15 @@ class ExternalPathManagerUI(QWidget):
             
             self.table.setCellWidget(row, 0, cb_widget)
             
-            self.table.setItem(row, 1, QTableWidgetItem(node.path()))
+            node_item = QTableWidgetItem(node.path())
+            try:
+                if hasattr(hou, "qt"):
+                    icon = hou.qt.Icon(node.type().icon())
+                    node_item.setIcon(icon)
+            except Exception:
+                pass
+            self.table.setItem(row, 1, node_item)
+            
             self.table.setItem(row, 2, QTableWidgetItem(parm.name()))
             
             unexpanded_val = self.get_parm_string(parm)
