@@ -6,7 +6,7 @@ import subprocess
 import platform
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, 
-    QTableWidgetItem, QHeaderView, QLineEdit, QLabel, QCheckBox, QMessageBox
+    QTableWidgetItem, QHeaderView, QLineEdit, QLabel, QCheckBox, QMessageBox, QComboBox
 )
 from PySide6.QtGui import QColor, QBrush
 from PySide6.QtCore import Qt
@@ -38,6 +38,11 @@ class ExternalPathManagerUI(QWidget):
         self.ext_filter_cb.setChecked(True)
         self.ext_filter_cb.stateChanged.connect(self.refresh_list)
         
+        self.filter_mode = QComboBox()
+        self.filter_mode.addItem("Node Path", 1)   # column index 1
+        self.filter_mode.addItem("File Path", 3)   # column index 3
+        self.filter_mode.currentIndexChanged.connect(self._on_filter_mode_changed)
+
         self.filter_le = QLineEdit()
         self.filter_le.setPlaceholderText("Filter by node path...")
         self.filter_le.textChanged.connect(self.filter_table)
@@ -50,6 +55,7 @@ class ExternalPathManagerUI(QWidget):
         top_layout.addWidget(self.refresh_btn)
         top_layout.addWidget(self.ext_filter_cb)
         top_layout.addWidget(QLabel("Filter:"))
+        top_layout.addWidget(self.filter_mode)
         top_layout.addWidget(self.filter_le)
         top_layout.addStretch()
         top_layout.addWidget(self.select_all_btn)
@@ -247,10 +253,19 @@ class ExternalPathManagerUI(QWidget):
             else:
                 return QColor(255, 120, 120) # Red (missing)
 
+    def _on_filter_mode_changed(self):
+        col = self.filter_mode.currentData()
+        if col == 1:
+            self.filter_le.setPlaceholderText("Filter by node path...")
+        else:
+            self.filter_le.setPlaceholderText("Filter by file path...")
+        self.filter_table(self.filter_le.text())
+
     def filter_table(self, text):
         search_text = text.lower()
+        col = self.filter_mode.currentData()
         for row in range(self.table.rowCount()):
-            item = self.table.item(row, 1) # Column 1 is Node Path
+            item = self.table.item(row, col)
             if item:
                 if search_text in item.text().lower():
                     self.table.setRowHidden(row, False)
