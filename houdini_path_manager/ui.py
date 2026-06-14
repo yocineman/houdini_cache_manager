@@ -23,6 +23,7 @@ class ExternalPathManagerUI(QWidget):
         self.resize(800, 500)
         
         self.parm_list = []
+        self.row_colors = []  # stores 'green', 'yellow', 'red' per row
         
         self.init_ui()
         self.refresh_list()
@@ -47,6 +48,26 @@ class ExternalPathManagerUI(QWidget):
         self.filter_le.setPlaceholderText("Filter by node path...")
         self.filter_le.textChanged.connect(self.filter_table)
 
+        # Color status toggle buttons
+        toggle_style = "QPushButton {{ background-color: {bg}; color: {fg}; border: 2px solid transparent; border-radius: 4px; padding: 3px 8px; font-weight: bold; }} QPushButton:checked {{ border: 2px solid white; }}"
+        self.btn_green = QPushButton("●")
+        self.btn_green.setToolTip("Show only existing paths")
+        self.btn_green.setCheckable(True)
+        self.btn_green.setStyleSheet(toggle_style.format(bg="#3a7a3a", fg="white"))
+        self.btn_green.toggled.connect(self.filter_table)
+
+        self.btn_yellow = QPushButton("●")
+        self.btn_yellow.setToolTip("Show only partial/sequence paths")
+        self.btn_yellow.setCheckable(True)
+        self.btn_yellow.setStyleSheet(toggle_style.format(bg="#7a7a20", fg="white"))
+        self.btn_yellow.toggled.connect(self.filter_table)
+
+        self.btn_red = QPushButton("●")
+        self.btn_red.setToolTip("Show only missing paths")
+        self.btn_red.setCheckable(True)
+        self.btn_red.setStyleSheet(toggle_style.format(bg="#7a2020", fg="white"))
+        self.btn_red.toggled.connect(self.filter_table)
+
         self.select_all_btn = QPushButton("Select All")
         self.select_all_btn.clicked.connect(self.select_all)
         self.deselect_all_btn = QPushButton("Deselect All")
@@ -57,6 +78,9 @@ class ExternalPathManagerUI(QWidget):
         top_layout.addWidget(QLabel("Filter:"))
         top_layout.addWidget(self.filter_mode)
         top_layout.addWidget(self.filter_le)
+        top_layout.addWidget(self.btn_green)
+        top_layout.addWidget(self.btn_yellow)
+        top_layout.addWidget(self.btn_red)
         top_layout.addStretch()
         top_layout.addWidget(self.select_all_btn)
         top_layout.addWidget(self.deselect_all_btn)
@@ -103,6 +127,7 @@ class ExternalPathManagerUI(QWidget):
     def refresh_list(self):
         self.table.setRowCount(0)
         self.parm_list.clear()
+        self.row_colors.clear()
         
         try:
             refs = hou.fileReferences()
@@ -167,6 +192,16 @@ class ExternalPathManagerUI(QWidget):
             self.table.setItem(row, 3, path_item)
             
             self.parm_list.append((parm, checkbox))
+            
+            # Store color status for this row
+            r, g, b = path_color.red(), path_color.green(), path_color.blue()
+            if g > 200:
+                self.row_colors.append('green')
+            elif r > 200 and g > 200:
+                self.row_colors.append('yellow')
+            else:
+                self.row_colors.append('red')
+            
             row += 1
             
         current_filter = self.filter_le.text()
@@ -261,16 +296,31 @@ class ExternalPathManagerUI(QWidget):
             self.filter_le.setPlaceholderText("Filter by file path...")
         self.filter_table(self.filter_le.text())
 
-    def filter_table(self, text):
-        search_text = text.lower()
+    def filter_table(self, *args):
+        search_text = self.filter_le.text().lower()
         col = self.filter_mode.currentData()
+        
+        active_colors = set()
+        if self.btn_green.isChecked():
+            active_colors.add('green')
+        if self.btn_yellow.isChecked():
+            active_colors.add('yellow')
+        if self.btn_red.isChecked():
+            active_colors.add('red')
+        
         for row in range(self.table.rowCount()):
+            # Text filter
             item = self.table.item(row, col)
-            if item:
-                if search_text in item.text().lower():
-                    self.table.setRowHidden(row, False)
-                else:
-                    self.table.setRowHidden(row, True)
+            text_match = (not search_text) or (item and search_text in item.text().lower())
+            
+            # Color filter (applied after text filter)
+            if active_colors:
+                row_color = self.row_colors[row] if row < len(self.row_colors) else 'red'
+                color_match = row_color in active_colors
+            else:
+                color_match = True
+            
+            self.table.setRowHidden(row, not (text_match and color_match))
 
     def select_all(self):
         for _, checkbox in self.parm_list:
