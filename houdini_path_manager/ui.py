@@ -28,6 +28,10 @@ class ExternalPathManagerUI(QWidget):
         self.refresh_btn = QPushButton("Refresh List")
         self.refresh_btn.clicked.connect(self.refresh_list)
         
+        self.ext_filter_cb = QCheckBox("Images & Caches Only")
+        self.ext_filter_cb.setChecked(True)
+        self.ext_filter_cb.stateChanged.connect(self.refresh_list)
+        
         self.filter_le = QLineEdit()
         self.filter_le.setPlaceholderText("Filter by node path...")
         self.filter_le.textChanged.connect(self.filter_table)
@@ -38,6 +42,7 @@ class ExternalPathManagerUI(QWidget):
         self.deselect_all_btn.clicked.connect(self.deselect_all)
         
         top_layout.addWidget(self.refresh_btn)
+        top_layout.addWidget(self.ext_filter_cb)
         top_layout.addWidget(QLabel("Filter:"))
         top_layout.addWidget(self.filter_le)
         top_layout.addStretch()
@@ -86,10 +91,25 @@ class ExternalPathManagerUI(QWidget):
             return
 
         seen_parms = set()
+        
+        CACHE_IMAGE_EXTS = (
+            '.bgeo', '.sc', '.gz', '.lzma',
+            '.vdb', '.abc', '.fbx', '.obj', '.usd', '.usda', '.usdc', '.usdz',
+            '.ass', '.rs', '.ifd',
+            '.exr', '.png', '.jpg', '.jpeg', '.tif', '.tiff', '.hdr', '.pic', '.rat', 
+            '.tga', '.tex', '.tx', '.bmp'
+        )
+        only_caches = self.ext_filter_cb.isChecked()
+        
         row = 0
         for parm, ref_path in refs:
             if parm is None:
                 continue
+                
+            if only_caches and ref_path:
+                if not ref_path.lower().endswith(CACHE_IMAGE_EXTS):
+                    continue
+                    
             if parm in seen_parms:
                 continue
             seen_parms.add(parm)
