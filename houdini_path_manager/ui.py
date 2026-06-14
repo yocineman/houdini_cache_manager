@@ -178,6 +178,7 @@ class ExternalPathManagerUI(QWidget):
             
             node_item = QTableWidgetItem(node.path())
             node_item.setFlags(node_item.flags() & ~Qt.ItemIsEditable)
+            node_item.setToolTip(node.path())
             try:
                 if hasattr(hou, "qt"):
                     icon = hou.qt.Icon(node.type().icon())
@@ -191,9 +192,12 @@ class ExternalPathManagerUI(QWidget):
             self.table.setItem(row, 2, parm_item)
             
             unexpanded_val = self.get_parm_string(parm)
+            # Also show the expanded (evaluated) path in the tooltip
+            evaluated_val = parm.evalAsString()
             path_item = QTableWidgetItem(unexpanded_val)
             path_color = self.get_path_color(parm, unexpanded_val)
             path_item.setForeground(QBrush(path_color))
+            path_item.setToolTip(f"Unexpanded: {unexpanded_val}\nExpanded:   {evaluated_val}")
             self.table.setItem(row, 3, path_item)
             
             self.parm_list.append((parm, checkbox))
