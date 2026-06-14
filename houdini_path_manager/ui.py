@@ -219,7 +219,8 @@ class ExternalPathManagerUI(QWidget):
         evaluated = parm.evalAsString()
         
         # Seq variables: $F, $F2.., $SF, $N, $T, <UDIM>, %(UDIM)d
-        seq_pattern = r'(\$[S]*F\d*|\$T|\$N|<UDIM>|%\(UDIM\)d)'
+        # Use negative lookahead (?![a-zA-Z_]) to prevent matching $T inside $TEX
+        seq_pattern = r'(\$[S]*F\d*(?![a-zA-Z_])|\$T(?![a-zA-Z_])|\$N(?![a-zA-Z_])|<UDIM>|%\(UDIM\)d)'
         
         if re.search(seq_pattern, unexpanded_val):
             # evaluated path expands Houdini variables and evaluates the current frame.
