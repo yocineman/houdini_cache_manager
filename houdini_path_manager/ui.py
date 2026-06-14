@@ -98,7 +98,8 @@ class ExternalPathManagerUI(QWidget):
         header.setSectionResizeMode(3, QHeaderView.Stretch)
         
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        # Allow single-click editing for column 3 only
+        self.table.setEditTriggers(QTableWidget.SelectedClicked | QTableWidget.AnyKeyPressed)
         
         # Geometry Spreadsheet style: alternating rows, vertical black lines only
         self.table.setAlternatingRowColors(True)
@@ -106,6 +107,7 @@ class ExternalPathManagerUI(QWidget):
         self.table.setStyleSheet("QTableWidget::item { border-right: 1px solid black; }")
         
         self.table.itemDoubleClicked.connect(self.on_item_double_clicked)
+        self.table.itemChanged.connect(self.on_path_item_changed)
         
         layout.addWidget(self.table)
         
@@ -175,6 +177,7 @@ class ExternalPathManagerUI(QWidget):
             self.table.setCellWidget(row, 0, cb_widget)
             
             node_item = QTableWidgetItem(node.path())
+            node_item.setFlags(node_item.flags() & ~Qt.ItemIsEditable)
             try:
                 if hasattr(hou, "qt"):
                     icon = hou.qt.Icon(node.type().icon())
@@ -183,7 +186,9 @@ class ExternalPathManagerUI(QWidget):
                 pass
             self.table.setItem(row, 1, node_item)
             
-            self.table.setItem(row, 2, QTableWidgetItem(parm.name()))
+            parm_item = QTableWidgetItem(parm.name())
+            parm_item.setFlags(parm_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 2, parm_item)
             
             unexpanded_val = self.get_parm_string(parm)
             path_item = QTableWidgetItem(unexpanded_val)
@@ -210,6 +215,33 @@ class ExternalPathManagerUI(QWidget):
         current_filter = self.filter_le.text()
         if current_filter:
             self.filter_table(current_filter)
+
+    def on_path_item_changed(self, item):
+        if item.column() != 3:
+            return
+        row = item.row()
+        if row >= len(self.parm_list):
+            return
+        parm, _ = self.parm_list[row]
+        new_val = item.text()
+        try:
+            with hou.undos.group("Edit External Path"):
+                parm.set(new_val)
+            # Update color without full refresh
+            path_color = self.get_path_color(parm, new_val)
+            self.table.blockSignals(True)
+            item.setForeground(QBrush(path_color))
+            self.table.blockSignals(False)
+            # Update stored color
+            r, g, b = path_color.red(), path_color.green(), path_color.blue()
+            if r > 200 and g > 200:
+                self.row_colors[row] = 'yellow'
+            elif g > 200:
+                self.row_colors[row] = 'green'
+            else:
+                self.row_colors[row] = 'red'
+        except Exception as e:
+            print(f"Failed to set parameter {parm.path()}: {e}")
 
     def on_item_double_clicked(self, item):
         col = item.column()
