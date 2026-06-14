@@ -67,6 +67,12 @@ class ExternalPathManagerUI(QWidget):
         
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        
+        # Geometry Spreadsheet style: alternating rows, vertical black lines only
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.setStyleSheet("QTableWidget::item { border-right: 1px solid black; }")
+        
         layout.addWidget(self.table)
         
         bottom_layout = QHBoxLayout()
