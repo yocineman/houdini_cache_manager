@@ -182,7 +182,7 @@ class ExternalPathManagerUI(QWidget):
             return
             
         count = 0
-        with hou.undogroup("Batch Replace External Paths"):
+        with hou.undos.group("Batch Replace External Paths"):
             for row in range(self.table.rowCount()):
                 if self.table.isRowHidden(row):
                     continue
