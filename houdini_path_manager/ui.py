@@ -2,6 +2,8 @@ import hou
 import os
 import re
 import glob
+import subprocess
+import platform
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, 
     QTableWidgetItem, QHeaderView, QLineEdit, QLabel, QCheckBox, QMessageBox
@@ -72,6 +74,8 @@ class ExternalPathManagerUI(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
         self.table.setStyleSheet("QTableWidget::item { border-right: 1px solid black; }")
+        
+        self.table.itemDoubleClicked.connect(self.on_item_double_clicked)
         
         layout.addWidget(self.table)
         
@@ -162,6 +166,45 @@ class ExternalPathManagerUI(QWidget):
         current_filter = self.filter_le.text()
         if current_filter:
             self.filter_table(current_filter)
+
+    def on_item_double_clicked(self, item):
+        col = item.column()
+        row = item.row()
+        parm, _ = self.parm_list[row]
+        
+        if col == 1: # Node Path
+            node = parm.node()
+            if node:
+                node.setSelected(True, clear_all_selected=True)
+                pane_tab = hou.ui.paneTabOfType(hou.paneTabType.NetworkEditor)
+                if pane_tab:
+                    pane_tab.setPwd(node.parent())
+        elif col == 3: # File Path
+            evaluated = parm.evalAsString()
+            
+            if os.path.isfile(evaluated):
+                target_dir = os.path.dirname(evaluated)
+            else:
+                target_dir = evaluated if os.path.isdir(evaluated) else os.path.dirname(evaluated)
+                
+            # Traverse up until an existing directory is found
+            while target_dir and not os.path.exists(target_dir):
+                parent_dir = os.path.dirname(target_dir)
+                if parent_dir == target_dir: # Reached root
+                    break
+                target_dir = parent_dir
+                
+            if target_dir and os.path.exists(target_dir):
+                system = platform.system()
+                try:
+                    if system == "Windows":
+                        os.startfile(target_dir)
+                    elif system == "Darwin":
+                        subprocess.Popen(["open", target_dir])
+                    else:
+                        subprocess.Popen(["xdg-open", target_dir])
+                except Exception as e:
+                    print(f"Failed to open directory: {e}")
 
     def get_parm_string(self, parm):
         try:
