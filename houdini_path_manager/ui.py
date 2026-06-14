@@ -1,8 +1,12 @@
 import hou
+import os
+import re
+import glob
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, 
     QTableWidgetItem, QHeaderView, QLineEdit, QLabel, QCheckBox, QMessageBox
 )
+from PySide6.QtGui import QColor, QBrush
 from PySide6.QtCore import Qt
 
 class ExternalPathManagerUI(QWidget):
@@ -141,7 +145,10 @@ class ExternalPathManagerUI(QWidget):
             self.table.setItem(row, 2, QTableWidgetItem(parm.name()))
             
             unexpanded_val = self.get_parm_string(parm)
-            self.table.setItem(row, 3, QTableWidgetItem(unexpanded_val))
+            path_item = QTableWidgetItem(unexpanded_val)
+            path_color = self.get_path_color(parm, unexpanded_val)
+            path_item.setForeground(QBrush(path_color))
+            self.table.setItem(row, 3, path_item)
             
             self.parm_list.append((parm, checkbox))
             row += 1
@@ -158,6 +165,30 @@ class ExternalPathManagerUI(QWidget):
                 return parm.rawValue()
             except:
                 return parm.evalAsString()
+
+    def get_path_color(self, parm, unexpanded_val):
+        evaluated = parm.evalAsString()
+        
+        # Seq variables: $F, $F2.., $SF, $N, $T, <UDIM>, %(UDIM)d
+        seq_pattern = r'(\$[S]*F\d*|\$T|\$N|<UDIM>|%\(UDIM\)d)'
+        
+        if re.search(seq_pattern, unexpanded_val):
+            # Replace sequences with wildcard
+            glob_unexpanded = re.sub(seq_pattern, '*', unexpanded_val)
+            try:
+                glob_path = hou.expandString(glob_unexpanded)
+            except:
+                glob_path = glob_unexpanded
+                
+            if glob.glob(glob_path):
+                return QColor(255, 255, 120) # Yellow (sequence exists)
+            else:
+                return QColor(255, 120, 120) # Red (missing)
+        else:
+            if os.path.exists(evaluated):
+                return QColor(120, 255, 120) # Green (exists)
+            else:
+                return QColor(255, 120, 120) # Red (missing)
 
     def filter_table(self, text):
         search_text = text.lower()
