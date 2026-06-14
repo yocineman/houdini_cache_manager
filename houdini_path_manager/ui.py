@@ -194,11 +194,14 @@ class ExternalPathManagerUI(QWidget):
             self.parm_list.append((parm, checkbox))
             
             # Store color status for this row
+            # Yellow: (255,255,120) - both R and G are high
+            # Green:  (120,255,120) - only G is high
+            # Red:    (255,120,120) - only R is high
             r, g, b = path_color.red(), path_color.green(), path_color.blue()
-            if g > 200:
-                self.row_colors.append('green')
-            elif r > 200 and g > 200:
+            if r > 200 and g > 200:
                 self.row_colors.append('yellow')
+            elif g > 200:
+                self.row_colors.append('green')
             else:
                 self.row_colors.append('red')
             
