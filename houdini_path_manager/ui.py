@@ -39,6 +39,10 @@ class ExternalPathManagerUI(QWidget):
         self.ext_filter_cb.setChecked(True)
         self.ext_filter_cb.stateChanged.connect(self.refresh_list)
         
+        self.exclude_chs_cb = QCheckBox("Exclude chs()")
+        self.exclude_chs_cb.setChecked(False)
+        self.exclude_chs_cb.stateChanged.connect(self.refresh_list)
+        
         self.filter_mode = QComboBox()
         self.filter_mode.addItem("Node Path", 0)   # column index 0
         self.filter_mode.addItem("File Path", 2)   # column index 2
@@ -70,6 +74,7 @@ class ExternalPathManagerUI(QWidget):
 
         top_layout.addWidget(self.refresh_btn)
         top_layout.addWidget(self.ext_filter_cb)
+        top_layout.addWidget(self.exclude_chs_cb)
         top_layout.addWidget(QLabel("Filter:"))
         top_layout.addWidget(self.filter_mode)
         top_layout.addWidget(self.filter_le)
@@ -152,6 +157,7 @@ class ExternalPathManagerUI(QWidget):
             '.tga', '.tex', '.tx', '.bmp'
         )
         only_caches = self.ext_filter_cb.isChecked()
+        exclude_chs = self.exclude_chs_cb.isChecked()
         
         row = 0
         for parm, ref_path in refs:
@@ -161,6 +167,10 @@ class ExternalPathManagerUI(QWidget):
             if only_caches and ref_path:
                 if not ref_path.lower().endswith(CACHE_IMAGE_EXTS):
                     continue
+                    
+            unexpanded_val = self.get_parm_string(parm)
+            if exclude_chs and "chs(" in unexpanded_val:
+                continue
                     
             if parm in seen_parms:
                 continue
