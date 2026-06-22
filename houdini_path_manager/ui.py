@@ -32,7 +32,9 @@ class ExternalPathManagerUI(QWidget):
         layout = QVBoxLayout(self)
         
         top_layout = QHBoxLayout()
-        self.refresh_btn = QPushButton("Refresh List")
+        self.refresh_btn = QPushButton("↻")
+        self.refresh_btn.setToolTip("Refresh List")
+        self.refresh_btn.setFixedWidth(30)
         self.refresh_btn.clicked.connect(self.refresh_list)
         
         self.ext_filter_cb = QCheckBox("Images & Caches Only")
@@ -40,7 +42,7 @@ class ExternalPathManagerUI(QWidget):
         self.ext_filter_cb.stateChanged.connect(self.refresh_list)
         
         self.exclude_chs_cb = QCheckBox("Exclude chs()")
-        self.exclude_chs_cb.setChecked(False)
+        self.exclude_chs_cb.setChecked(True)
         self.exclude_chs_cb.stateChanged.connect(self.refresh_list)
         
         self.filter_mode = QComboBox()
