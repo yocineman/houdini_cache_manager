@@ -40,8 +40,8 @@ class ExternalPathManagerUI(QWidget):
         self.ext_filter_cb.stateChanged.connect(self.refresh_list)
         
         self.filter_mode = QComboBox()
-        self.filter_mode.addItem("Node Path", 1)   # column index 1
-        self.filter_mode.addItem("File Path", 3)   # column index 3
+        self.filter_mode.addItem("Node Path", 0)   # column index 0
+        self.filter_mode.addItem("File Path", 2)   # column index 2
         self.filter_mode.currentIndexChanged.connect(self._on_filter_mode_changed)
 
         self.filter_le = QLineEdit()
@@ -68,11 +68,6 @@ class ExternalPathManagerUI(QWidget):
         self.btn_red.setStyleSheet(toggle_style.format(bg="#7a2020", fg="white"))
         self.btn_red.toggled.connect(self.filter_table)
 
-        self.select_all_btn = QPushButton("Select All")
-        self.select_all_btn.clicked.connect(self.select_all)
-        self.deselect_all_btn = QPushButton("Deselect All")
-        self.deselect_all_btn.clicked.connect(self.deselect_all)
-        
         top_layout.addWidget(self.refresh_btn)
         top_layout.addWidget(self.ext_filter_cb)
         top_layout.addWidget(QLabel("Filter:"))
@@ -82,23 +77,21 @@ class ExternalPathManagerUI(QWidget):
         top_layout.addWidget(self.btn_yellow)
         top_layout.addWidget(self.btn_red)
         top_layout.addStretch()
-        top_layout.addWidget(self.select_all_btn)
-        top_layout.addWidget(self.deselect_all_btn)
         
         layout.addLayout(top_layout)
         
         self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Select", "Node Path", "Parameter", "File Path (Unexpanded)"])
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(["Node Path", "Parameter", "File Path (Unexpanded)"])
         
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.Interactive)
         header.setSectionResizeMode(1, QHeaderView.Interactive)
-        header.setSectionResizeMode(2, QHeaderView.Interactive)
-        header.setSectionResizeMode(3, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)
         
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        # Allow single-click editing for column 3 only
+        self.table.setSelectionMode(QTableWidget.ExtendedSelection)
+        # Allow single-click editing for column 2 only
         self.table.setEditTriggers(QTableWidget.SelectedClicked | QTableWidget.AnyKeyPressed)
         
         # Geometry Spreadsheet style: alternating rows, vertical black lines only
@@ -120,7 +113,8 @@ class ExternalPathManagerUI(QWidget):
         self.replace_le = QLineEdit()
         bottom_layout.addWidget(self.replace_le)
         
-        self.apply_btn = QPushButton("Apply Replace to Selected")
+        self.apply_btn = QPushButton("Apply Replace")
+        self.apply_btn.setToolTip("Apply replace to selected rows, or to all visible rows if nothing is selected.")
         self.apply_btn.clicked.connect(self.apply_replace)
         bottom_layout.addWidget(self.apply_btn)
         
@@ -165,17 +159,6 @@ class ExternalPathManagerUI(QWidget):
             
             self.table.insertRow(row)
             
-            checkbox = QCheckBox()
-            checkbox.setChecked(True)
-            
-            cb_widget = QWidget()
-            cb_layout = QHBoxLayout(cb_widget)
-            cb_layout.addWidget(checkbox)
-            cb_layout.setAlignment(Qt.AlignCenter)
-            cb_layout.setContentsMargins(0,0,0,0)
-            
-            self.table.setCellWidget(row, 0, cb_widget)
-            
             node_item = QTableWidgetItem(node.path())
             node_item.setFlags(node_item.flags() & ~Qt.ItemIsEditable)
             node_item.setToolTip(node.path())
@@ -185,11 +168,11 @@ class ExternalPathManagerUI(QWidget):
                     node_item.setIcon(icon)
             except Exception:
                 pass
-            self.table.setItem(row, 1, node_item)
+            self.table.setItem(row, 0, node_item)
             
             parm_item = QTableWidgetItem(parm.name())
             parm_item.setFlags(parm_item.flags() & ~Qt.ItemIsEditable)
-            self.table.setItem(row, 2, parm_item)
+            self.table.setItem(row, 1, parm_item)
             
             unexpanded_val = self.get_parm_string(parm)
             # Also show the expanded (evaluated) path in the tooltip
@@ -198,9 +181,9 @@ class ExternalPathManagerUI(QWidget):
             path_color = self.get_path_color(parm, unexpanded_val)
             path_item.setForeground(QBrush(path_color))
             path_item.setToolTip(f"Unexpanded: {unexpanded_val}\nExpanded:   {evaluated_val}")
-            self.table.setItem(row, 3, path_item)
+            self.table.setItem(row, 2, path_item)
             
-            self.parm_list.append((parm, checkbox))
+            self.parm_list.append(parm)
             
             # Store color status for this row
             # Yellow: (255,255,120) - both R and G are high
@@ -221,12 +204,12 @@ class ExternalPathManagerUI(QWidget):
             self.filter_table(current_filter)
 
     def on_path_item_changed(self, item):
-        if item.column() != 3:
+        if item.column() != 2:
             return
         row = item.row()
         if row >= len(self.parm_list):
             return
-        parm, _ = self.parm_list[row]
+        parm = self.parm_list[row]
         new_val = item.text()
         try:
             with hou.undos.group("Edit External Path"):
@@ -250,16 +233,16 @@ class ExternalPathManagerUI(QWidget):
     def on_item_double_clicked(self, item):
         col = item.column()
         row = item.row()
-        parm, _ = self.parm_list[row]
+        parm = self.parm_list[row]
         
-        if col == 1: # Node Path
+        if col == 0: # Node Path
             node = parm.node()
             if node:
                 node.setSelected(True, clear_all_selected=True)
                 pane_tab = hou.ui.paneTabOfType(hou.paneTabType.NetworkEditor)
                 if pane_tab:
                     pane_tab.setPwd(node.parent())
-        elif col == 3: # File Path
+        elif col == 2: # File Path
             evaluated = parm.evalAsString()
             
             if os.path.isfile(evaluated):
@@ -329,7 +312,7 @@ class ExternalPathManagerUI(QWidget):
 
     def _on_filter_mode_changed(self):
         col = self.filter_mode.currentData()
-        if col == 1:
+        if col == 0:
             self.filter_le.setPlaceholderText("Filter by node path...")
         else:
             self.filter_le.setPlaceholderText("Filter by file path...")
@@ -358,17 +341,10 @@ class ExternalPathManagerUI(QWidget):
                 color_match = row_color in active_colors
             else:
                 color_match = True
-            
             self.table.setRowHidden(row, not (text_match and color_match))
 
-    def select_all(self):
-        for _, checkbox in self.parm_list:
-            checkbox.setChecked(True)
-            
-    def deselect_all(self):
-        for _, checkbox in self.parm_list:
-            checkbox.setChecked(False)
 
+ 
     def apply_replace(self):
         search_str = self.search_le.text()
         replace_str = self.replace_le.text()
@@ -377,21 +353,38 @@ class ExternalPathManagerUI(QWidget):
             QMessageBox.warning(self, "Warning", "Search string cannot be empty.")
             return
             
+        # Determine target rows:
+        # If there is an active selection in the table, target those rows.
+        # Otherwise, target all visible (non-hidden) rows.
+        selected_indexes = self.table.selectionModel().selectedRows()
+        selected_rows = {index.row() for index in selected_indexes}
+        
+        target_rows = []
+        for row in range(self.table.rowCount()):
+            if self.table.isRowHidden(row):
+                continue
+            if selected_rows:
+                if row in selected_rows:
+                    target_rows.append(row)
+            else:
+                target_rows.append(row)
+                
+        if not target_rows:
+            QMessageBox.warning(self, "Warning", "No rows selected or visible to apply replacement.")
+            return
+            
         count = 0
         with hou.undos.group("Batch Replace External Paths"):
-            for row in range(self.table.rowCount()):
-                if self.table.isRowHidden(row):
-                    continue
-                parm, checkbox = self.parm_list[row]
-                if checkbox.isChecked():
-                    current_val = self.get_parm_string(parm)
-                    if search_str in current_val:
-                        new_val = current_val.replace(search_str, replace_str)
-                        try:
-                            parm.set(new_val)
-                            count += 1
-                        except Exception as e:
-                            print(f"Failed to set parameter {parm.path()}: {e}")
+            for row in target_rows:
+                parm = self.parm_list[row]
+                current_val = self.get_parm_string(parm)
+                if search_str in current_val:
+                    new_val = current_val.replace(search_str, replace_str)
+                    try:
+                        parm.set(new_val)
+                        count += 1
+                    except Exception as e:
+                        print(f"Failed to set parameter {parm.path()}: {e}")
         
         QMessageBox.information(self, "Success", f"Replaced paths in {count} parameters.")
         self.refresh_list()
