@@ -34,7 +34,8 @@ class ExternalPathManagerUI(QWidget):
         top_layout = QHBoxLayout()
         self.refresh_btn = QPushButton("↻")
         self.refresh_btn.setToolTip("Refresh List")
-        self.refresh_btn.setFixedWidth(30)
+        self.refresh_btn.setFixedSize(32, 32)
+        self.refresh_btn.setStyleSheet("QPushButton { font-size: 18px; }")
         self.refresh_btn.clicked.connect(self.refresh_list)
         
         self.ext_filter_cb = QCheckBox("Images & Caches Only")
