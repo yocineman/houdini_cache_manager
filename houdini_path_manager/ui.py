@@ -133,7 +133,7 @@ class ExternalPathManagerUI(QWidget):
 
         # Manually scan for filecache nodes in the scene to include them
         try:
-            for node in hou.node("/").allSubNodes():
+            for node in hou.node("/").allSubChildren():
                 if "filecache" in node.type().name().lower():
                     for parm_name in ("file", "sopoutput"):
                         parm = node.parm(parm_name)
