@@ -126,10 +126,21 @@ class ExternalPathManagerUI(QWidget):
         self.row_colors.clear()
         
         try:
-            refs = hou.fileReferences()
+            refs = list(hou.fileReferences())
         except AttributeError:
             QMessageBox.critical(self, "Error", "hou.fileReferences is not available. Please run inside Houdini.")
             return
+
+        # Manually scan for filecache nodes in the scene to include them
+        try:
+            for node in hou.node("/").allSubNodes():
+                if "filecache" in node.type().name().lower():
+                    for parm_name in ("file", "sopoutput"):
+                        parm = node.parm(parm_name)
+                        if parm:
+                            refs.append((parm, parm.evalAsString()))
+        except Exception as e:
+            print(f"Error scanning for filecache nodes: {e}")
 
         seen_parms = set()
         
